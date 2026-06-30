@@ -1,0 +1,886 @@
+<div class="container-fluid">
+  <div class="d-flex flex-row double-under-lines mb-2 mt-4">
+    <%= image_tag @image_url_base64 %>
+    <h4 class='header-navbar d-inline align-self-center text-primary-dashboard ml-1 mb-0'>
+      Boletim ACTO
+    </h4>
+  </div>
+
+  <% if params[:initial_date].present? && params[:final_date].present? %>
+    <% initial_dt = Date.parse(params[:initial_date]) rescue nil %>
+    <% final_dt = Date.parse(params[:final_date]) rescue nil %>
+
+    <div class="d-flex flex-row-reverse color-default btn-square date-picker date-obras text-primary-dashboard">
+      <div>
+        <i class="fa fa-calendar"></i>
+        <h6 class='ml-auto header-navbar d-inline align-self-center text-primary-dashboard ml-1 mb-0'>
+          <% if initial_dt.present? && final_dt.present? %>
+            <%= "#{initial_dt.strftime("%B").capitalize} - #{initial_dt.strftime("%d/%m/%Y")} a #{final_dt.strftime("%d/%m/%Y")}" %>
+          <% else %>
+            <%= "#{Time.zone.now.strftime("%B").capitalize} - #{Project.last_friday.strftime("%d/%m/%Y")} a #{Time.zone.now.strftime("%d/%m/%Y")}" %>
+          <% end %>
+        </h6>
+      </div>
+    </div>
+
+    <h4 class="text-center header-navbar mt-2 font-weight-bold text-primary-dashboard">Indicadores do ACTO no seu município</h4>
+
+    <div class="d-flex flex-row align-items-center justify-content-center m-2">
+      <%= link_to 'javascript: void(0)', data: { toggle: 'modal', target: "#modalWeeklyDashboardPDF" }, remote: false, class: 'btn btn-sm btn-default m-1 btn-link', title: 'Gerar PDF do Boletim' do %>
+        <i class="fas fa-file-pdf"></i>
+      <% end %>
+
+      <%= link_to 'javascript: void(0)', data: { toggle: 'modal', target: "#modalWeeklyDashboardXLS" }, remote: false, class: 'btn btn-sm btn-default m-1 btn-link', title: 'Gerar EXCEL do Boletim' do %>
+        <i class="fas fa-file-excel"></i>
+      <% end %>
+    </div>
+
+    <div class="row mt-4">
+      <%= card_dashboard_border_left counter_name(2), indicator_to_currency(@project_and_certificate_counter), 'border-left-success', 'fas fa-file-alt fa-2x gray-color-dashboard', 'text-success' %>
+      <%= card_dashboard_border_left counter_name(3), indicator_to_currency(@soil_use_counter), 'border-left-success', 'fas fa-check-circle fa-2x gray-color-dashboard', 'text-success' %>
+      <%= card_dashboard_border_left "#{counter_name(1)} (m²)", indicator_to_currency(@approved_building_counter), 'border-left-primary', 'fas fa-check-circle fa-2x gray-color-dashboard', 'text-primary' %>
+      <%= card_dashboard_border_left "#{counter_name(4)} (m²)", indicator_to_currency(@approved_inhabit_counter), 'border-left-primary', 'fas fa-check-circle fa-2x gray-color-dashboard', 'text-primary' %>
+      <%= card_dashboard_border_left 'Processos Concluídos', indicator_to_currency(@project_done_counter), 'border-left-info', 'fas fa-clipboard-list fa-2x gray-color-dashboard', 'text-info' %>
+      <%= card_dashboard_border_left 'Usuário Ativos', indicator_to_currency(@active_user_counter), 'border-left-warning', 'fas fa-user-check fa-2x gray-color-dashboard', 'text-warning' %>
+      <%= card_dashboard_border_left 'Arquivos Anexos', indicator_to_currency(@project_upload_counter), 'border-left-warning', 'fas fa-file-alt fa-2x gray-color-dashboard', 'text-warning' %>
+    </div>
+
+    <h6 class="text-center header-navbar my-3 font-weight-bold text-primary-dashboard" style="text-transform: none !important;"> Principais Indicadores</h6>
+
+    <div class="row">
+      <div class='col-12 m-2 text-center'>
+        <%= button_tag type: 'button', data: { name: "weekDashMonthData" }, class: 'btn btn-sm btn-link buttonSeparedByNameChartAllDiv' do %>
+          <p x="21" style="color:#5a5c69;font-size:12px;font-weight:bold;cursor:pointer;fill:#5a5c69;" text-anchor="start" y="15">
+            <span>Todos</span>
+          </p>
+        <% end %>
+
+        <%= button_tag type: 'button', data: { name: "weekDashMonthData" }, class: 'btn btn-sm btn-link buttonSeparedByNameChart' do %>
+          <p x="21" style="color:#5a5c69;font-size:12px;font-weight:bold;cursor:pointer;fill:#5a5c69;" text-anchor="start" y="15">
+            <span>Indicadores de Processos</span>
+          </p>
+        <% end %>
+
+        <%= button_tag type: 'button', data: { name: "weekDashTaxData" }, class: 'btn btn-sm btn-link buttonSeparedByNameChart' do %>
+          <p x="21" style="color:#5a5c69;font-size:12px;font-weight:bold;cursor:pointer;fill:#5a5c69;" text-anchor="start" y="15">
+            <span>Indicadores de Arrecadação</span>
+          </p>
+        <% end %>
+
+        <%= button_tag type: 'button', data: { name: "weekDashDimensionsIndData" }, class: 'btn btn-sm btn-link buttonSeparedByNameChart' do %>
+          <p x="21" style="color:#5a5c69;font-size:12px;font-weight:bold;cursor:pointer;fill:#5a5c69;" text-anchor="start" y="15">
+            <span>Indicadores de Projeto Aprovado e Executado</span>
+          </p>
+        <% end %>
+
+        <%= button_tag type: 'button', data: { name: "weekDashProcessData" }, class: 'btn btn-sm btn-link buttonSeparedByNameChart' do %>
+          <p x="21" style="color:#5a5c69;font-size:12px;font-weight:bold;cursor:pointer;fill:#5a5c69;" text-anchor="start" y="15">
+            <span>Indicadores Semanais</span>
+          </p>
+        <% end %>
+
+        <%= button_tag type: 'button', data: { name: "weekDashOtherIndData" }, class: 'btn btn-sm btn-link buttonSeparedByNameChart' do %>
+          <p x="21" style="color:#5a5c69;font-size:12px;font-weight:bold;cursor:pointer;fill:#5a5c69;" text-anchor="start" y="15">
+            <span>Indicadores de Uso</span>
+          </p>
+        <% end %>
+      </div>
+
+      <div class="col-12 weekDashMonthData">
+        <div class="card-dashboard shadow mb-2">
+          <div class="card-header py-3 d-flex flex-row align-items-center justify-content-start">
+            <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">Indicadores de processos</h6>
+            <i class="fas fa-chart-line fa-2x gray-color-dashboard ml-2"></i>
+          </div>
+          <div class="row card-body">
+            <% if @completed_and_sent_of_the_year.present? %>
+              <div class="col-12 px-0 px-sm-3 mt-3">
+                <div class="d-flex flex-row align-items-center justify-content-start">
+                  <i class="far fa-chart-bar fa-2x gray-color-dashboard mr-2"></i>
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">Processos Recebidos e Concluídos</h6>
+                </div>
+                <div class="d-flex flex-row align-items-center justify-content-end">
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">
+                    <%= indicator_to_currency(@completed_and_sent_of_the_year[0][:total]) if @completed_and_sent_of_the_year[0].present? %> Processos Recebidos /
+                    <%= indicator_to_currency(@completed_and_sent_of_the_year[1][:total]) if @completed_and_sent_of_the_year[1].present? %> Processos Concluídos
+                  </h6>
+                </div>
+                <div class="col-12 mt-3">
+                  <%= column_chart @completed_and_sent_of_the_year, id: 'completedChartWeeklyDashboard', thousands: ".", library: { legend: { itemStyle: { color: '#5a5c69', fontWeight: 'bold', fontSize: '12px' } } } %>
+                </div>
+              </div>
+            <% end %>
+
+            <% if @deferred_projects_with_agency_of_the_year.present? %>
+              <div class="col-12 px-0 px-sm-3 mt-3">
+                <div class="d-flex flex-row align-items-center justify-content-start">
+                  <i class="far fa-chart-bar fa-2x gray-color-dashboard mr-2"></i>
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">Processos deferidos</h6>
+                </div>
+                <div class="d-flex flex-row align-items-center justify-content-end">
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">
+                    <% count = 0 %>
+                    <% @deferred_projects_with_agency_of_the_year.each { |d| count += d[:total] if d[:total].present? } %>
+                    <%= indicator_to_currency count %> Processos
+                  </h6>
+                </div>
+                <div class="mt-3">
+                  <%= column_chart @deferred_projects_with_agency_of_the_year, stacked: true, id: 'deferredChartWeeklyDashboard', library: { legend: { itemStyle: { color: '#5a5c69', fontWeight: 'bold', fontSize: '12px' } } }, height: "600px" %>
+                </div>
+              </div>
+            <% end %>
+
+            <% if @projects_separated_by_name_and_year.present? %>
+              <div class="col-12 d-flex flex-row double-under-lines mb-2 mt-4">
+                <h4 class='header-navbar d-inline align-self-center text-primary-dashboard ml-1 mb-0'></h4>
+              </div>
+              <div class="col-12 m-2 text-center">
+                <%= button_tag type: 'button', data: { name: "weekDashMonthData" }, class: 'btn btn-sm btn-link buttonSeparedByNameChartAllDiv' do %>
+                  <p x="21" style="color:#5a5c69;font-size:12px;font-weight:bold;cursor:pointer;fill:#5a5c69;" text-anchor="start" y="15">
+                    <span>Todos</span>
+                  </p>
+                <% end %>
+                <% @projects_separated_by_name_and_year.each do |agency| %>
+                  <%= button_tag type: 'button', data: { name: "chartDt#{I18n.transliterate(agency[:name].gsub(' ','').gsub("|",'').gsub('/','').gsub('-',''))}" }, class: 'btn btn-sm btn-link buttonSeparedByNameChart' do %>
+                    <p x="21" style="color:#5a5c69;font-size:12px;font-weight:bold;cursor:pointer;fill:#5a5c69;" text-anchor="start" y="15">
+                      <span><%= agency[:name] %></span>
+                    </p>
+                  <% end %>
+                <% end %>
+              </div>
+              <% @projects_separated_by_name_and_year.each do |agency| %>
+                <div class="col-12 px-0 px-sm-3 mt-3 chartDt<%= I18n.transliterate(agency[:name].gsub(' ','').gsub("|",'').gsub('/','').gsub('-','')) %>">
+                  <div class="d-flex flex-row align-items-center justify-content-start">
+                    <i class="far fa-chart-bar fa-2x gray-color-dashboard mr-2"></i>
+                    <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">Processos por Serviços - <%= agency[:name] %></h6>
+                  </div>
+                  <div class="d-flex flex-row align-items-center justify-content-end">
+                    <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">
+                      <%= indicator_to_currency(agency[:total]) if agency[:total].present? %> Processos
+                    </h6>
+                  </div>
+                  <div class="col-12 mt-3 getAllDivForLabelweekDash">
+                    <%= column_chart agency[:data], stacked: true, id: "separedByNameChartWeeklyDashboard#{I18n.transliterate(agency[:name].gsub(' ','').gsub("|",'').gsub('/','').gsub('-',''))}", library: { legend: { itemStyle: { color: '#5a5c69', fontWeight: 'bold', fontSize: '12px' } } }, height: "600px" %>
+                  </div>
+                </div>
+              <% end %>
+            <% end %>
+
+            <% if @get_status_for_charts_dashboard.present? %>
+              <div class="col-12 d-flex flex-row double-under-lines mb-2 mt-4">
+                <h4 class='header-navbar d-inline align-self-center text-primary-dashboard ml-1 mb-0'></h4>
+              </div>
+              <div class="col-12 px-0 px-sm-3 mt-3">
+                <div class="d-flex flex-row align-items-center justify-content-start">
+                  <i class="far fa-chart-bar fa-2x gray-color-dashboard mr-2"></i>
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">Processos por Status</h6>
+                </div>
+                <div class="d-flex flex-row align-items-center justify-content-end">
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">
+                    <% count = 0 %>
+                    <% @get_status_for_charts_dashboard.each { |d| count += d[:total] if d[:total].present? } %>
+                    <%= indicator_to_currency count %> Processos
+                  </h6>
+                </div>
+                <div class="col-12 mt-3 getAllDivForLabelweekDash">
+                  <%= column_chart @get_status_for_charts_dashboard, stacked: true, id: 'StatusProcessChartWeeklyDashboard', library: { legend: { itemStyle: { color: '#5a5c69', fontWeight: 'bold', fontSize: '12px' } } }, height: "600px" %>
+                </div>
+              </div>
+            <% end %>
+
+            <% if @projects_separated_by_building_purpose.present? %>
+              <div class="col-12 d-flex flex-row double-under-lines mb-2 mt-4">
+                <h4 class='header-navbar d-inline align-self-center text-primary-dashboard ml-1 mb-0'></h4>
+              </div>
+              <div class="col-12 px-0 px-sm-3 mt-3">
+                <div class="d-flex flex-row align-items-center justify-content-start">
+                  <i class="far fa-chart-bar fa-2x gray-color-dashboard mr-2"></i>
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">Processos por <%= @pf_immobile[:finalidade][:placeholder] %></h6>
+                </div>
+                <div class="d-flex flex-row align-items-center justify-content-end">
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">
+                    <% count = 0 %>
+                    <% @projects_separated_by_building_purpose.each { |d| count += d[:total] if d[:total].present? } %>
+                    <%= indicator_to_currency count %> Processos
+                  </h6>
+                </div>
+                <div class="col-12 mt-3 getAllDivForLabelweekDash">
+                  <%= column_chart @projects_separated_by_building_purpose, stacked: true, id: 'buildingPurposeChartWeeklyDashboard', library: { legend: { itemStyle: { color: '#5a5c69', fontWeight: 'bold', fontSize: '12px' } } }, height: "600px" %>
+                </div>
+              </div>
+            <% end %>
+
+            <% if @projects_separated_by_building_kind.present? %>
+              <div class="col-12 d-flex flex-row double-under-lines mb-2 mt-4">
+                <h4 class='header-navbar d-inline align-self-center text-primary-dashboard ml-1 mb-0'></h4>
+              </div>
+              <div class="col-12 px-0 px-sm-3 mt-3">
+                <div class="d-flex flex-row align-items-center justify-content-start">
+                  <i class="far fa-chart-bar fa-2x gray-color-dashboard mr-2"></i>
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">Processos por <%= @pf_immobile[:tipo_de_construcao][:placeholder] %></h6>
+                </div>
+                <div class="d-flex flex-row align-items-center justify-content-end">
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">
+                    <% count = 0 %>
+                    <% @projects_separated_by_building_kind.each { |d| count += d[:total] if d[:total].present? } %>
+                    <%= indicator_to_currency count %> Processos
+                  </h6>
+                </div>
+                <div class="col-12 mt-3 getAllDivForLabelweekDash">
+                  <%= column_chart @projects_separated_by_building_kind, stacked: true, id: 'buildingKindChartWeeklyDashboard', library: { legend: { itemStyle: { color: '#5a5c69', fontWeight: 'bold', fontSize: '12px' } } }, height: "600px" %>
+                </div>
+              </div>
+            <% end %>
+
+            <% if @process_separated_by_technical_analysis.present? %>
+              <div class="col-12 d-flex flex-row double-under-lines mb-2 mt-4">
+                <h4 class='header-navbar d-inline align-self-center text-primary-dashboard ml-1 mb-0'></h4>
+              </div>
+              <div class="col-12 px-0 px-sm-3 mt-3">
+                <div class="d-flex flex-row align-items-center justify-content-start">
+                  <i class="far fa-chart-bar fa-2x gray-color-dashboard mr-2"></i>
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">Processos por Área de Atuação</h6>
+                </div>
+                <div class="d-flex flex-row align-items-center justify-content-end">
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">
+                    <% count = 0 %>
+                    <% @process_separated_by_technical_analysis.each { |d| count += d[:total] if d[:total].present? } %>
+                    <%= indicator_to_currency count %> Processos
+                  </h6>
+                </div>
+                <div class="col-12 mt-3 getAllDivForLabelweekDash">
+                  <%= column_chart @process_separated_by_technical_analysis, stacked: true, id: 'TecnicalAnalystChartWeeklyDashboard', library: { legend: { itemStyle: { color: '#5a5c69', fontWeight: 'bold', fontSize: '12px' } } }, height: "600px" %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row weekDashTaxData">
+      <div class="col-12">
+        <div class="card-dashboard shadow mb-2">
+          <div class="card-header py-3 d-flex flex-row align-items-center justify-content-start">
+            <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">Indicadores de arrecadação</h6>
+            <i class="fas fa-dollar-sign fa-2x gray-color-dashboard ml-2"></i>
+          </div>
+          <div class="row card-body">
+            <div class="col-12">
+              <%= create_multiple_progress_bar "#{number_to_currency(@data_for_the_treasury_chart[0].to_a.last[1], unit: "", separator: ",", delimiter: ".", precision: 0)} Pagamentos", @data_for_the_treasury_chart[0] %>
+            </div>
+            <div class="col-12 text-center">
+              <ul class="legend-multiple-bars px-0">
+                <li>
+                  <span style="background-color: #007bff;"></span>
+                  Aguardando Pagamento: <%= number_to_currency(@data_for_the_treasury_chart[0][:"Aguardando Pagamento"], unit: "", separator: ",", delimiter: ".", precision: 0) %>
+                </li>
+                <li>
+                  <span style="background-color: #86b300;"></span>
+                  Pagos: <%= number_to_currency(@data_for_the_treasury_chart[0][:"Pagos"], unit: "", separator: ",", delimiter: ".", precision: 0) %>
+                </li>
+                <li>
+                  <span style="background-color: #B1B1B1;"></span>
+                  Isentos: <%= number_to_currency(@data_for_the_treasury_chart[0][:"Isentos"], unit: "", separator: ",", delimiter: ".", precision: 0) %>
+                </li>
+              </ul>
+            </div>
+            <div class="col-12">
+              <%= create_multiple_progress_bar "#{number_to_currency(@data_for_the_treasury_chart[1].to_a.last[1], unit: "R$ ", separator: ",", delimiter: ".")} de Arrecadação", @data_for_the_treasury_chart[1], currency: true %>
+            </div>
+            <div class="col-12 text-center">
+              <ul class="legend-multiple-bars px-0">
+                <li>
+                  <span style="background-color: #007bff;"></span>
+                  Aguardando Pagamento: <%= number_to_currency(@data_for_the_treasury_chart[1][:"Aguardando Pagamento"], unit: "R$ ", separator: ",", delimiter: ".") %>
+                </li>
+                <li>
+                  <span style="background-color: #86b300;"></span>
+                  Pagos: <%= number_to_currency(@data_for_the_treasury_chart[1][:"Pagos"], unit: "R$ ", separator: ",", delimiter: ".") %>
+                </li>
+              </ul>
+            </div>
+
+            <% if @get_annual_revenue_chart.present? %>
+              <div class="col-12 px-0 px-sm-3 mt-3">
+                <div class="d-flex flex-row align-items-center justify-content-start">
+                  <i class="far fa-chart-bar fa-2x gray-color-dashboard mr-2"></i>
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">Arrecadação Mensal (R$)</h6>
+                </div>
+                <div class="d-flex flex-row align-items-center justify-content-end">
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">
+                    <%= indicator_to_currency(@get_annual_revenue_chart[0][:total].round(2)) if @get_annual_revenue_chart[0] %> Aguardando Pagamento /
+                    <%= indicator_to_currency(@get_annual_revenue_chart[1][:total].round(2)) if @get_annual_revenue_chart[0] %> pagos
+                  </h6>
+                </div>
+                <div class="col-12 mt-3 getAllDivForLabelweekDash">
+                  <%= column_chart @get_annual_revenue_chart, stacked: true, id: 'annualRevenueChartWeeklyDashboard', library: { legend: { itemStyle: { color: '#5a5c69', fontWeight: 'bold', fontSize: '12px' } } }, height: "600px" %>
+                </div>
+              </div>
+            <% end %>
+
+            <% if @data_for_the_treasury_chart_for_agency.present? %>
+              <div class="col-12 px-0 px-sm-3 mt-3">
+                <div class="d-flex flex-row align-items-center justify-content-start">
+                  <i class="far fa-chart-bar fa-2x gray-color-dashboard mr-2"></i>
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">Arrecadação Mensal por Orgão (R$)</h6>
+                </div>
+                <div class="d-flex flex-row align-items-center justify-content-end">
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">
+                    <% count = 0 %>
+                    <% @data_for_the_treasury_chart_for_agency.each { |d| count += d[:total].round(2) if d[:total].present? } %>
+                    <%= indicator_to_currency count %> Arrecadado
+                  </h6>
+                </div>
+                <div class="col-12 mt-3">
+                  <%= column_chart @data_for_the_treasury_chart_for_agency, stacked: true, id: 'treasuryChartWeeklyDashboard', library: { legend: { itemStyle: { color: '#5a5c69', fontWeight: 'bold', fontSize: '12px' } } }, height: "600px" %>
+                </div>
+              </div>
+            <% end %>
+
+            <% if @tributary_separated_by_agency_and_year.present? %>
+              <div class="col-12 d-flex flex-row double-under-lines mb-2 mt-4">
+                <h4 class='header-navbar d-inline align-self-center text-primary-dashboard ml-1 mb-0'></h4>
+              </div>
+              <div class="col-12 m-2 text-center">
+                <%= button_tag type: 'button', data: { name: "weekDashMonthData" }, class: 'btn btn-sm btn-link buttonSeparedByNameChartAllDiv' do %>
+                  <p x="21" style="color:#5a5c69;font-size:12px;font-weight:bold;cursor:pointer;fill:#5a5c69;" text-anchor="start" y="15">
+                    <span>Todos</span>
+                  </p>
+                <% end %>
+                <% @tributary_separated_by_agency_and_year.each do |agency| %>
+                  <%= button_tag type: 'button', data: { name: "chartDt#{I18n.transliterate(agency[:name].gsub(' ','').gsub("|",'').gsub('/','').gsub('-',''))}Tax" }, class: 'btn btn-sm btn-link buttonSeparedByNameChart' do %>
+                    <p x="21" style="color:#5a5c69;font-size:12px;font-weight:bold;cursor:pointer;fill:#5a5c69;" text-anchor="start" y="15">
+                      <span><%= agency[:name] %></span>
+                    </p>
+                  <% end %>
+                <% end %>
+              </div>
+
+              <% @tributary_separated_by_agency_and_year.each do |agency| %>
+                <% if agency[:data].present? && agency[:data][0].present? %>
+                  <div class="col-12 px-0 px-sm-3 mt-3 chartDt<%= I18n.transliterate(agency[:name].gsub(' ','').gsub("|",'').gsub('/','').gsub('-','')) %>Tax">
+                    <div class="d-flex flex-row align-items-center justify-content-start">
+                      <i class="far fa-chart-bar fa-2x gray-color-dashboard mr-2"></i>
+                      <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">Serviços Arrecadação Mensal (R$) - <%= agency[:name] %> - Lançado</h6>
+                    </div>
+                    <div class="d-flex flex-row align-items-center justify-content-end">
+                      <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">
+                        <%= indicator_to_currency(agency[:total].round(2)) if agency[:total].present? %> Lançado
+                      </h6>
+                    </div>
+                    <div class="col-12 mt-3 getAllDivForLabelweekDash">
+                      <%= column_chart agency[:data][0], stacked: true, id: "separedByNameChartWeeklyDashboard#{I18n.transliterate(agency[:name].gsub(' ','').gsub("|",'').gsub('/','').gsub('-',''))}Tax", library: { legend: { itemStyle: { color: '#5a5c69', fontWeight: 'bold', fontSize: '12px' } } }, height: "600px" %>
+                    </div>
+                  </div>
+                <% end %>
+
+                <% if agency[:data].present? && agency[:data][1].present? %>
+                  <div class="col-12 px-0 px-sm-3 mt-3 chartDt<%= I18n.transliterate(agency[:name].gsub(' ','').gsub("|",'').gsub('/','').gsub('-','')) %>Tax">
+                    <div class="d-flex flex-row align-items-center justify-content-start">
+                      <i class="far fa-chart-bar fa-2x gray-color-dashboard mr-2"></i>
+                      <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">Serviços Arrecadação Mensal (R$) - <%= agency[:name] %> - Arrecadado</h6>
+                    </div>
+                    <div class="d-flex flex-row align-items-center justify-content-end">
+                      <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">
+                        <%= indicator_to_currency(agency[:total2].round(2)) if agency[:total2].present? %> Arrecadado
+                      </h6>
+                    </div>
+                    <div class="col-12 mt-3 getAllDivForLabelweekDash">
+                      <%= column_chart agency[:data][1], stacked: true, id: "separedByNameTaxChartWeeklyDashboard#{I18n.transliterate(agency[:name].gsub(' ','').gsub("|",'').gsub('/','').gsub('-',''))}Tax", library: { legend: { itemStyle: { color: '#5a5c69', fontWeight: 'bold', fontSize: '12px' } } }, height: "600px" %>
+                    </div>
+                  </div>
+                <% end %>
+              <% end %>
+            <% end %>
+
+            <% if @get_status_rates_for_charting_dashboard[0].present? %>
+              <div class="col-12 d-flex flex-row double-under-lines mb-2 mt-4">
+                <h4 class='header-navbar d-inline align-self-center text-primary-dashboard ml-1 mb-0'></h4>
+              </div>
+              <div class="col-12 px-0 px-sm-3 mt-3">
+                <div class="d-flex flex-row align-items-center justify-content-start">
+                  <i class="far fa-chart-bar fa-2x gray-color-dashboard mr-2"></i>
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">Arrecadação Mensal (R$) por Status - Lançado</h6>
+                </div>
+                <div class="d-flex flex-row align-items-center justify-content-end">
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">
+                    <% count = 0 %>
+                    <% @get_status_rates_for_charting_dashboard[0].each { |d| count += d[:total].round(2) if d[:total].present? } %>
+                    <%= indicator_to_currency count %> Lançado
+                  </h6>
+                </div>
+                <div class="col-12 mt-3 getAllDivForLabelweekDash">
+                  <%= column_chart @get_status_rates_for_charting_dashboard[0], stacked: true, id: 'statusTaxTreasuryChartWeeklyDashboard', library: { legend: { itemStyle: { color: '#5a5c69', fontWeight: 'bold', fontSize: '12px' } } }, height: "600px" %>
+                </div>
+              </div>
+            <% end %>
+
+            <% if @get_status_rates_for_charting_dashboard[1].present? %>
+              <div class="col-12 d-flex flex-row double-under-lines mb-2 mt-4">
+                <h4 class='header-navbar d-inline align-self-center text-primary-dashboard ml-1 mb-0'></h4>
+              </div>
+              <div class="col-12 px-0 px-sm-3 mt-3">
+                <div class="d-flex flex-row align-items-center justify-content-start">
+                  <i class="far fa-chart-bar fa-2x gray-color-dashboard mr-2"></i>
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">Arrecadação Mensal (R$) por Status - Arrecadado</h6>
+                </div>
+                <div class="d-flex flex-row align-items-center justify-content-end">
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">
+                    <% count = 0 %>
+                    <% @get_status_rates_for_charting_dashboard[1].each { |d| count += d[:total].round(2) if d[:total].present? } %>
+                    <%= indicator_to_currency count %> Arrecadado
+                  </h6>
+                </div>
+                <div class="col-12 mt-3 getAllDivForLabelweekDash">
+                  <%= column_chart @get_status_rates_for_charting_dashboard[1], stacked: true, id: 'statusTaxTreasuryPGChartWeeklyDashboard', library: { legend: { itemStyle: { color: '#5a5c69', fontWeight: 'bold', fontSize: '12px' } } }, height: "600px" %>
+                </div>
+              </div>
+            <% end %>
+
+            <% if @rates_separated_by_building_purpose[0].present? %>
+              <div class="col-12 d-flex flex-row double-under-lines mb-2 mt-4">
+                <h4 class='header-navbar d-inline align-self-center text-primary-dashboard ml-1 mb-0'></h4>
+              </div>
+              <div class="col-12 px-0 px-sm-3 mt-3">
+                <div class="d-flex flex-row align-items-center justify-content-start">
+                  <i class="far fa-chart-bar fa-2x gray-color-dashboard mr-2"></i>
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">Arrecadação Mensal (R$) por <%= @pf_immobile[:finalidade][:placeholder] %> - Lançado</h6>
+                </div>
+                <div class="d-flex flex-row align-items-center justify-content-end">
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">
+                    <% count = 0 %>
+                    <% @rates_separated_by_building_purpose[0].each { |d| count += d[:total].round(2) if d[:total].present? } %>
+                    <%= indicator_to_currency count %> Lançado
+                  </h6>
+                </div>
+                <div class="col-12 mt-3 getAllDivForLabelweekDash">
+                  <%= column_chart @rates_separated_by_building_purpose[0], stacked: true, id: 'buildingPuporseTaxTreasuryChartWeeklyDashboard', library: { legend: { itemStyle: { color: '#5a5c69', fontWeight: 'bold', fontSize: '12px' } } }, height: "600px" %>
+                </div>
+              </div>
+            <% end %>
+
+            <% if @rates_separated_by_building_purpose[1].present? %>
+              <div class="col-12 d-flex flex-row double-under-lines mb-2 mt-4">
+                <h4 class='header-navbar d-inline align-self-center text-primary-dashboard ml-1 mb-0'></h4>
+              </div>
+              <div class="col-12 px-0 px-sm-3 mt-3">
+                <div class="d-flex flex-row align-items-center justify-content-start">
+                  <i class="far fa-chart-bar fa-2x gray-color-dashboard mr-2"></i>
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">Arrecadação Mensal (R$) por <%= @pf_immobile[:finalidade][:placeholder] %> - Arrecadado</h6>
+                </div>
+                <div class="d-flex flex-row align-items-center justify-content-end">
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">
+                    <% count = 0 %>
+                    <% @rates_separated_by_building_purpose[1].each { |d| count += d[:total].round(2) if d[:total].present? } %>
+                    <%= indicator_to_currency count %> Arrecadado
+                  </h6>
+                </div>
+                <div class="col-12 mt-3 getAllDivForLabelweekDash">
+                  <%= column_chart @rates_separated_by_building_purpose[1], stacked: true, id: 'buildingPuporseTaxPGTreasuryChartWeeklyDashboard', library: { legend: { itemStyle: { color: '#5a5c69', fontWeight: 'bold', fontSize: '12px' } } }, height: "600px" %>
+                </div>
+              </div>
+            <% end %>
+
+            <% if @rates_separated_by_building_kind[0].present? %>
+              <div class="col-12 d-flex flex-row double-under-lines mb-2 mt-4">
+                <h4 class='header-navbar d-inline align-self-center text-primary-dashboard ml-1 mb-0'></h4>
+              </div>
+              <div class="col-12 px-0 px-sm-3 mt-3">
+                <div class="d-flex flex-row align-items-center justify-content-start">
+                  <i class="far fa-chart-bar fa-2x gray-color-dashboard mr-2"></i>
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">Arrecadação Mensal (R$) por <%= @pf_immobile[:tipo_de_construcao][:placeholder] %> - Lançado</h6>
+                </div>
+                <div class="d-flex flex-row align-items-center justify-content-end">
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">
+                    <% count = 0 %>
+                    <% @rates_separated_by_building_kind[0].each { |d| count += d[:total].round(2) if d[:total].present? } %>
+                    <%= indicator_to_currency count %> Lançado
+                  </h6>
+                </div>
+                <div class="col-12 mt-3 getAllDivForLabelweekDash">
+                  <%= column_chart @rates_separated_by_building_kind[0], stacked: true, id: 'buildingKindTaxTreasuryChartWeeklyDashboard', library: { legend: { itemStyle: { color: '#5a5c69', fontWeight: 'bold', fontSize: '12px' } } }, height: "600px" %>
+                </div>
+              </div>
+            <% end %>
+
+            <% if @rates_separated_by_building_kind[1].present? %>
+              <div class="col-12 d-flex flex-row double-under-lines mb-2 mt-4">
+                <h4 class='header-navbar d-inline align-self-center text-primary-dashboard ml-1 mb-0'></h4>
+              </div>
+              <div class="col-12 px-0 px-sm-3 mt-3">
+                <div class="d-flex flex-row align-items-center justify-content-start">
+                  <i class="far fa-chart-bar fa-2x gray-color-dashboard mr-2"></i>
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">Arrecadação Mensal (R$) por <%= @pf_immobile[:tipo_de_construcao][:placeholder] %> - Arrecadado</h6>
+                </div>
+                <div class="d-flex flex-row align-items-center justify-content-end">
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">
+                    <% count = 0 %>
+                    <% @rates_separated_by_building_kind[1].each { |d| count += d[:total].round(2) if d[:total].present? } %>
+                    <%= indicator_to_currency count %> Arrecadado
+                  </h6>
+                </div>
+                <div class="col-12 mt-3 getAllDivForLabelweekDash">
+                  <%= column_chart @rates_separated_by_building_kind[1], stacked: true, id: 'buildingKindTaxTreasuryPGChartWeeklyDashboard', library: { legend: { itemStyle: { color: '#5a5c69', fontWeight: 'bold', fontSize: '12px' } } }, height: "600px" %>
+                </div>
+              </div>
+            <% end %>
+
+            <% if @rates_separated_by_technical_analysis[0].present? %>
+              <div class="col-12 d-flex flex-row double-under-lines mb-2 mt-4">
+                <h4 class='header-navbar d-inline align-self-center text-primary-dashboard ml-1 mb-0'></h4>
+              </div>
+              <div class="col-12 px-0 px-sm-3 mt-3">
+                <div class="d-flex flex-row align-items-center justify-content-start">
+                  <i class="far fa-chart-bar fa-2x gray-color-dashboard mr-2"></i>
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">Arrecadação Mensal (R$) por Área de Atuação - Lançado</h6>
+                </div>
+                <div class="d-flex flex-row align-items-center justify-content-end">
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">
+                    <% count = 0 %>
+                    <% @rates_separated_by_technical_analysis[0].each { |d| count += d[:total].round(2) if d[:total].present? } %>
+                    <%= indicator_to_currency count %> Lançado
+                  </h6>
+                </div>
+                <div class="col-12 mt-3 getAllDivForLabelweekDash">
+                  <%= column_chart @rates_separated_by_technical_analysis[0], stacked: true, id: 'profileTaxTreasuryPGChartWeeklyDashboard', library: { legend: { itemStyle: { color: '#5a5c69', fontWeight: 'bold', fontSize: '12px' } } }, height: "600px" %>
+                </div>
+              </div>
+            <% end %>
+
+            <% if @rates_separated_by_technical_analysis[1].present? %>
+              <div class="col-12 d-flex flex-row double-under-lines mb-2 mt-4">
+                <h4 class='header-navbar d-inline align-self-center text-primary-dashboard ml-1 mb-0'></h4>
+              </div>
+              <div class="col-12 px-0 px-sm-3 mt-3">
+                <div class="d-flex flex-row align-items-center justify-content-start">
+                  <i class="far fa-chart-bar fa-2x gray-color-dashboard mr-2"></i>
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">Arrecadação Mensal (R$) por Área de Atuação - Arrecadado</h6>
+                </div>
+                <div class="d-flex flex-row align-items-center justify-content-end">
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">
+                    <% count = 0 %>
+                    <% @rates_separated_by_technical_analysis[1].each { |d| count += d[:total].round(2) if d[:total].present? } %>
+                    <%= indicator_to_currency count %> Arrecadado
+                  </h6>
+                </div>
+                <div class="col-12 mt-3 getAllDivForLabelweekDash">
+                  <%= column_chart @rates_separated_by_technical_analysis[1], stacked: true, id: 'profilePGTaxTreasuryPGChartWeeklyDashboard', library: { legend: { itemStyle: { color: '#5a5c69', fontWeight: 'bold', fontSize: '12px' } } }, height: "600px" %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row weekDashDimensionsIndData">
+      <div class="col-12">
+        <div class="card-dashboard shadow mb-2">
+          <div class="card-header py-3 d-flex flex-row align-items-center justify-content-start">
+            <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">Indicadores de Projetos Aprovados e Executados</h6>
+            <i class="far fa-chart-bar fa-2x gray-color-dashboard ml-2"></i>
+          </div>
+          <div class="row card-body">
+            <% if @project_layout_monitor_sum_work_total_area.present? %>
+              <div class="col-12 d-flex flex-row double-under-lines mb-2 mt-4">
+                <h4 class='header-navbar d-inline align-self-center text-primary-dashboard ml-1 mb-0'></h4>
+              </div>
+              <div class="col-12 px-0 px-sm-3 mt-3">
+                <div class="d-flex flex-row align-items-center justify-content-start">
+                  <i class="far fa-chart-bar fa-2x gray-color-dashboard mr-2"></i>
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">Dimensão/Execução da construção </h6>
+                </div>
+                <div class="d-flex flex-row align-items-center justify-content-end">
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard">
+                    Aprovado - <%= indicator_to_currency(@project_layout_monitor_sum_work_total_area[0][:total].round(2)) if @project_layout_monitor_sum_work_total_area[0].present? %> Área Total do Imóvel (m²) /
+                    Executado - <%= indicator_to_currency(@project_layout_monitor_sum_work_total_area[1][:total].round(2)) if @project_layout_monitor_sum_work_total_area[1].present? %> Área Total do Imóvel (m²)
+                  </h6>
+                </div>
+                <div class="col-12 mt-3 getAllDivForLabelweekDash">
+                  <%= column_chart @project_layout_monitor_sum_work_total_area, stacked: true, id: 'projectLayoutDtChartWeeklyDashboard', library: { legend: { itemStyle: { color: '#5a5c69', fontWeight: 'bold', fontSize: '12px' } } }, height: "600px" %>
+                </div>
+              </div>
+            <% end %>
+
+            <% if @project_layout_monitor_sum_quantity_of_units.present? %>
+              <div class="col-12 d-flex flex-row double-under-lines mb-2 mt-4">
+                <h4 class='header-navbar d-inline align-self-center text-primary-dashboard ml-1 mb-0'></h4>
+              </div>
+              <div class="col-12 px-0 px-sm-3 mt-3">
+                <div class="d-flex flex-row align-items-center justify-content-start">
+                  <i class="far fa-chart-bar fa-2x gray-color-dashboard mr-2"></i>
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">Quantidade de Unidades</h6>
+                </div>
+                <div class="d-flex flex-row align-items-center justify-content-end">
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard">
+                    Aprovado - <%= indicator_to_currency(@project_layout_monitor_sum_quantity_of_units[0][:total]) if @project_layout_monitor_sum_quantity_of_units[0].present? %> Quantidade de Unidades /
+                    Executado - <%= indicator_to_currency(@project_layout_monitor_sum_quantity_of_units[1][:total]) if @project_layout_monitor_sum_quantity_of_units[1].present? %> Quantidade de Unidades
+                  </h6>
+                </div>
+                <div class="mt-3 getAllDivForLabelweekDash">
+                  <%= column_chart @project_layout_monitor_sum_quantity_of_units, stacked: true, id: 'projectToMonitorDtChartWeeklyDashboard', library: { legend: { itemStyle: { color: '#5a5c69', fontWeight: 'bold', fontSize: '12px' } } }, height: "600px" %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row weekDashProcessData">
+      <div class="col-12">
+        <div class="card-dashboard shadow mb-2">
+          <div class="card-header py-3 d-flex flex-row align-items-center justify-content-start">
+            <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">Indicadores Semanais</h6>
+            <i class="fas fa-chart-line fa-2x gray-color-dashboard ml-2"></i>
+          </div>
+          <div class="row card-body">
+            <% if @project_ids_by_dates.present? && @projects_count.present? && @projects_count > 0 %>
+              <% context_html = '' %>
+              <% @range_dates.each do |key| %>
+                <% if @project_ids_by_dates.present? && @project_ids_by_dates[key[0]].present? %>
+                  <% porcent = sprintf("%0.02f", calculate_percentage_of_values(@project_ids_by_dates[key[0]], key[0] == :year ? @projects_count : key[0] == :month || key[0] == :last_month ? @project_ids_by_dates[:year] : @project_ids_by_dates[:month])) %>
+                  <% context_html += create_progress_bar_dash key[1], @project_ids_by_dates[key[0]], porcent %>
+                <% end %>
+              <% end %>
+              <%= card_dashboard "#{indicator_to_currency @projects_count} Total de Processos", context_html %>
+            <% end %>
+
+            <% if @deferred.present? && @deferred_projects.present? && @deferred_projects > 0 %>
+              <% context_html = '' %>
+              <% @range_dates.each do |key| %>
+                <% if @deferred.present? && @deferred[key[0]].present? %>
+                  <% porcent = sprintf("%0.02f", calculate_percentage_of_values(@deferred[key[0]], key[0] == :year ? @deferred_projects : key[0] == :month || key[0] == :last_month ? @deferred[:year] : @deferred[:month])) %>
+                  <% context_html += create_progress_bar_dash key[1], @deferred[key[0]], porcent %>
+                <% end %>
+              <% end %>
+              <%= card_dashboard "#{indicator_to_currency @deferred_projects} Deferido(s)", context_html %>
+            <% end %>
+
+            <% if @rejected.present? && @rejected_projects.present? && @rejected_projects > 0 %>
+              <% context_html = '' %>
+              <% @range_dates.each do |key| %>
+                <% if @rejected.present? && @rejected[key[0]].present? %>
+                  <% porcent = sprintf("%0.02f", calculate_percentage_of_values(@rejected[key[0]], key[0] == :year ? @rejected_projects : key[0] == :month || key[0] == :last_month ? @rejected[:year] : @rejected[:month])) %>
+                  <% context_html += create_progress_bar_dash key[1], @rejected[key[0]], porcent %>
+                <% end %>
+              <% end %>
+              <%= card_dashboard "#{indicator_to_currency @rejected_projects} Indeferido(s)", context_html %>
+            <% end %>
+
+            <% if @closed.present? && @closed_projects.present? && @closed_projects > 0 %>
+              <% context_html = '' %>
+              <% @range_dates.each do |key| %>
+                <% if @closed.present? && @closed[key[0]].present? %>
+                  <% porcent = sprintf("%0.02f", calculate_percentage_of_values(@closed[key[0]], key[0] == :year ? @closed_projects : key[0] == :month || key[0] == :last_month ? @closed[:year] : @closed[:month])) %>
+                  <% context_html += create_progress_bar_dash key[1], @closed[key[0]], porcent %>
+                <% end %>
+              <% end %>
+              <%= card_dashboard "#{indicator_to_currency @closed_projects} Encerrado(s)", context_html %>
+            <% end %>
+
+            <% if @report_additional_hash.present? && @report_additionals.present? && @report_additionals > 0 %>
+              <% context_html = '' %>
+              <% @range_dates.each do |key| %>
+                <% if @report_additional_hash.present? && @report_additional_hash[key[0]].present? %>
+                  <% porcent = sprintf("%0.02f", calculate_percentage_of_values(@report_additional_hash[key[0]], key[0] == :year ? @report_additionals : key[0] == :month || key[0] == :last_month ? @report_additional_hash[:year] : @report_additional_hash[:month])) %>
+                  <% context_html += create_progress_bar_dash key[1], @report_additional_hash[key[0]], porcent %>
+                <% end %>
+              <% end %>
+              <%= card_dashboard "#{indicator_to_currency @report_additionals} Comunique-se", context_html %>
+            <% end %>
+
+            <% if @report_additional_hash2.present? && @report_additionals2.present? && @report_additionals2 > 0 %>
+              <% context_html = '' %>
+              <% @range_dates.each do |key| %>
+                <% if @report_additional_hash2.present? && @report_additional_hash2[key[0]].present? %>
+                  <% porcent = sprintf("%0.02f", calculate_percentage_of_values(@report_additional_hash2[key[0]], key[0] == :year ? @report_additionals2 : key[0] == :month || key[0] == :last_month ? @report_additional_hash2[:year] : @report_additional_hash2[:month])) %>
+                  <% context_html += create_progress_bar_dash key[1], @report_additional_hash2[key[0]], porcent %>
+                <% end %>
+              <% end %>
+              <%= card_dashboard "#{indicator_to_currency @report_additionals2} Pedidos de Informações", context_html %>
+            <% end %>
+
+            <% if @total_fiscal_hash.present? && @total_fiscal.present? && @total_fiscal > 0 %>
+              <% context_html = '' %>
+              <% @range_dates.each do |key| %>
+                <% if @total_fiscal_hash.present? && @total_fiscal_hash[key[0]].present? %>
+                  <% porcent = sprintf("%0.02f", calculate_percentage_of_values(@total_fiscal_hash[key[0]], key[0] == :year ? @total_fiscal : key[0] == :month || key[0] == :last_month ? @total_fiscal_hash[:year] : @total_fiscal_hash[:month])) %>
+                  <% context_html += create_progress_bar_dash key[1], @total_fiscal_hash[key[0]], porcent %>
+                <% end %>
+              <% end %>
+              <%= card_dashboard "#{indicator_to_currency @total_fiscal} Ações Fiscais", context_html %>
+            <% end %>
+
+            <% if @total_notification_hash.present? && @total_notification.present? && @total_notification > 0 %>
+              <% context_html = '' %>
+              <% @range_dates.each do |key| %>
+                <% if @total_notification_hash.present? && @total_notification_hash[key[0]].present? %>
+                  <% porcent = sprintf("%0.02f", calculate_percentage_of_values(@total_notification_hash[key[0]], key[0] == :year ? @total_notification : key[0] == :month || key[0] == :last_month ? @total_notification_hash[:year] : @total_notification_hash[:month])) %>
+                  <% context_html += create_progress_bar_dash key[1], @total_notification_hash[key[0]], porcent %>
+                <% end %>
+              <% end %>
+              <%= card_dashboard "#{indicator_to_currency @total_notification} Notificações", context_html %>
+            <% end %>
+
+            <% if @online_service.present? && @reports.present? && @reports > 0 %>
+              <% context_html = '' %>
+              <% @range_dates.each do |key| %>
+                <% if @online_service.present? && @online_service[key[0]].present? %>
+                  <% porcent = sprintf("%0.02f", calculate_percentage_of_values(@online_service[key[0]], key[0] == :year ? @reports : key[0] == :month || key[0] == :last_month ? @online_service[:year] : @online_service[:month])) %>
+                  <% context_html += create_progress_bar_dash key[1], @online_service[key[0]], porcent %>
+                <% end %>
+              <% end %>
+              <%= card_dashboard "#{indicator_to_currency @reports} Serviços Prestados Online", context_html %>
+            <% end %>
+
+            <p class="dark-gray-color-dashboard mt-2 mx-1 ml-2"><b>* A porcentagem do ano é calculada em função do total, a porcentagem do mês é calculada em função do total anual e a porcentagem da semana é calculada em função do total mensal.</b></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row weekDashOtherIndData">
+      <div class="col-12">
+        <div class="card-dashboard shadow mb-2">
+          <div class="card-header py-3 d-flex flex-row align-items-center justify-content-start">
+            <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">Indicadores de Uso</h6>
+            <i class="fas fa-chart-line fa-2x gray-color-dashboard ml-2"></i>
+          </div>
+          <div class="row card-body">
+            <% if @ten_most_used_requirement.present? || @ten_most_used_monitoring.present? %>
+              <div class="col-12 mb-3 px-0 px-sm-3">
+                <div class="d-flex flex-row align-items-center justify-content-start mb-3">
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">
+                    <%= @projects_from_friday_to_friday %> Processos foram enviados para a Prefeitura na semana
+                  </h6>
+                </div>
+                <div class="row">
+                  <div class="col-12 col-md-6">
+                    <% if @ten_most_used_requirement.present? %>
+                      <div class="d-flex flex-row align-items-center justify-content-start my-1">
+                        <i class="fas fa-file-contract fa-2x gray-color-dashboard mr-2"></i>
+                        <p class="m-0 font-weight-bold text-primary-dashboard">Requerimentos mais solicitados</p>
+                      </div>
+                      <ul class="list-group">
+                        <% @ten_most_used_requirement.each do |key, value| %>
+                          <li class="list-group-item-dashboard d-flex justify-content-between align-items-center b-0 dark-gray-color-dashboard font-weight-bold">
+                            <%= key.capitalize %>
+                            <span class="badge badge-pill text-primary-dashboard" style="font-size: 100%"><%= value %></span>
+                          </li>
+                        <% end %>
+                      </ul>
+                    <% end %>
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <% if @ten_most_used_monitoring.present? %>
+                      <div class="d-flex flex-row align-items-center justify-content-start my-1">
+                        <i class="far fa-eye fa-2x gray-color-dashboard mr-2"></i>
+                        <p class="m-0 font-weight-bold text-primary-dashboard">Monitoramentos mais executados</p>
+                      </div>
+                      <ul class="list-group">
+                        <% @ten_most_used_monitoring.each do |key, value| %>
+                          <li class="list-group-item-dashboard d-flex justify-content-between align-items-center b-0 dark-gray-color-dashboard font-weight-bold">
+                            <%= key.capitalize %>
+                            <span class="badge badge-pill text-primary-dashboard" style="font-size: 100%"><%= value %></span>
+                          </li>
+                        <% end %>
+                      </ul>
+                    <% end %>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+
+            <% if @project_completed_by_agency_and_status_types.present? %>
+              <div class="col-12 px-0 px-sm-3 mt-3">
+                <div class="d-flex flex-row align-items-center justify-content-start mb-3">
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">
+                    <%= @project_completed %> Processos foram concluídos na semana
+                  </h6>
+                </div>
+                <div class="row">
+                  <% agencies = [] %>
+                  <% @project_completed_by_agency_and_status_types.each_with_index do |(key, data_value), index| %>
+                    <% total = (data_value['size_project'].present? ? data_value['size_project'] : data_value[:size_project]) %>
+                    <% context_html = '' %>
+                    <% agencies << key.to_s %>
+                    <% deferred_already_showed = false %>
+                    <% data_value.each_with_index do |(key2, data_value2), index2| %>
+                      <% if (@status_deferred + [@status_def]).include?(key2.to_s) && !deferred_already_showed %>
+                        <% value = 0 %>
+                        <% deferred_already_showed = true %>
+                        <% (@status_deferred + [@status_def]).each do |st| %>
+                          <% value += (data_value[st].present? ? data_value[st].to_i : data_value[st.to_sym].present? ? data_value[st.to_sym].to_i : 0) %>
+                        <% end %>
+                        <% porcent = sprintf("%0.02f", calculate_percentage_of_values(value, total.to_i).to_f) %>
+                        <% bg_color = (@status_color[@status_def].present? && @status_color[@status_def][:background_color].present?) ? @status_color[@status_def][:background_color] : '' %>
+                        <% context_html += create_progress_bar_dash @status_def, value, porcent, bg_color %>
+                      <% elsif !(@status_deferred + [@status_def, 'size_project']).include?(key2.to_s) %>
+                        <% porcent = sprintf("%0.02f", calculate_percentage_of_values(data_value2, total.to_i).to_f) %>
+                        <% bg_color = (@status_color[key2.to_s].present? && @status_color[key2.to_s][:background_color].present?) ? @status_color[key2.to_s][:background_color] : '' %>
+                        <% context_html += create_progress_bar_dash key2.to_s, data_value2, porcent, bg_color %>
+                      <% end %>
+                    <% end %>
+                    <%= card_dashboard "#{total} #{key}", context_html, class_col: 'col-sm-6 col-lg-4 mb-1' %>
+                  <% end %>
+                  <div class='col-12 m-2'>
+                    <% if (@agencies - agencies).present? %>
+                      <p class="dark-gray-color-dashboard mb-0">
+                        <b>* <%= (@agencies - agencies).length > 1 ? 'Os Órgãos ' : 'O Órgão ' %>
+                          <%= (@agencies - agencies).join(',').gsub(',', ', ') %> não <%= (@agencies - agencies).length > 1 ? 'concluíram' : 'concluiu' %> processos na semana.</b>
+                      </p>
+                    <% end %>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+
+            <div class="col-lg-12 d-flex justify-content-center p-0 p-sm-2">
+              <div class="col-xl-7 mt-3 px-0">
+                <div class="d-flex flex-row align-items-center justify-content-start">
+                  <i class="fas fa-users fa-2x gray-color-dashboard mr-2"></i>
+                  <h6 class="m-0 font-weight-bold text-primary-dashboard" style="text-transform: none !important;">Informações sobre os Usuários do Sistema</h6>
+                </div>
+                <div class="d-flex justify-content-around mt-2 single-under-line">
+                  <div class="text-xs font-weight-bold mb-1 dark-gray-color-dashboard">Ativos: <%= @active_users %></div>
+                  <div class="text-xs font-weight-bold mb-1 dark-gray-color-dashboard">Inativos: <%= @inactive_users %></div>
+                  <div class="text-xs font-weight-bold mb-1 dark-gray-color-dashboard">Bloqueados: <%= @blocked_users %></div>
+                </div>
+                <div class="d-flex p-2 bd-highlight justify-content-center font-weight-bold text-primary-dashboard">Total: <%= @users %></div>
+                <div class="col-12 pie-chart-dashboard">
+                  <%= pie_chart @users_by_type, donut: true, id: 'chartWeeklyDashboard', legend: "right", label: 'Valor', thousands: ".", library: { plotOptions: { pie: { dataLabels: { enabled: false }, showInLegend: true } }, legend: { labelFormat: '{name} : {y} ({percentage:.1f}%)' } } %>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% else %>
+    <div class="alert alert-info text-center mt-4">
+      Selecione um intervalo de datas para carregar os indicadores.
+    </div>
+
+    <%= form_with url: admin_weekly_dashboards_path, method: :get, local: true, class: "mb-3" do %>
+      <div class="row align-items-end">
+        <div class="col-12 col-md-5">
+          <%= label_tag :initial_date, "Data inicial" %>
+          <%= date_field_tag :initial_date, params[:initial_date], class: "form-control" %>
+        </div>
+
+        <div class="col-12 col-md-5">
+          <%= label_tag :final_date, "Data final" %>
+          <%= date_field_tag :final_date, params[:final_date], class: "form-control" %>
+        </div>
+
+        <div class="col-12 col-md-2 mt-3 mt-md-0">
+          <%= submit_tag "Filtrar", class: "btn btn-primary btn-block" %>
+        </div>
+      </div>
+    <% end %>
+  <% end %>
+</div>
+
+<%= hidden_field_tag 'city-hall-initial-date', Project.first.created_at.try(:strftime, "%d-%m-%Y") if Project.first.present? %>
