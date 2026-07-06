@@ -2,6 +2,7 @@ module Admin
   class WeeklyDashboardsController < Admin::DashboardsController
     def index
       initial_date, final_date = extract_date_range
+      agency_ids = extract_agency_ids
 
       @pf_immobile = ProjectField.to_hash(1, 0)
       @status_color = StatusDecoration.get_colors
@@ -76,8 +77,8 @@ module Admin
       histories_completed = $redis.hget('user:general:main_counters', 'flow_histories_completed').present? ? JSON.parse($redis.hget('user:general:main_counters', 'flow_histories_completed'), symbolize_names: true).size : 0
       @project_completed += histories_completed if histories_completed.present? && histories_completed > 0
 
-      @completed_and_sent_of_the_year = Counter.completed_and_sent_of_the_year(initial_date: initial_date, final_date: final_date)
-      @deferred_projects_with_agency_of_the_year = Counter.deferred_projects_with_agency_of_the_year(initial_date: initial_date, final_date: final_date)
+      @completed_and_sent_of_the_year = Counter.completed_and_sent_of_the_year(initial_date: initial_date, final_date: final_date, agency_ids: agency_ids)
+      @deferred_projects_with_agency_of_the_year = Counter.deferred_projects_with_agency_of_the_year(initial_date: initial_date, final_date: final_date, agency_ids: agency_ids)
       @data_for_the_treasury_chart = Counter.data_for_the_treasury_chart(initial_date: initial_date, final_date: final_date)
       @data_for_the_treasury_chart_for_agency = Counter.data_for_the_treasury_chart_for_agency(initial_date: initial_date, final_date: final_date)
 
@@ -180,6 +181,10 @@ module Admin
     end
 
     private
+
+    def extract_agency_ids
+      Array(params[:agency_ids]).map(&:to_i).presence
+    end
 
     def extract_date_range
       if params[:date_range].present?
