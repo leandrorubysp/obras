@@ -488,6 +488,15 @@ class Counter < ApplicationRecord
     projects ? filter_projects_by_agency(projects, agency_ids) : nil
   end
 
+  def self.project_ids_scope(current_access, current_user, current_profile, current_agency, initial_date:, final_date:, agency_ids:)
+    Project.where(
+      id: project_ids(
+        current_access, current_user, current_profile, current_agency,
+        initial_date: initial_date, final_date: final_date, agency_ids: agency_ids
+      )
+    )
+  end
+
   def self.project_done_counter(current_access=nil, current_user=nil, current_profile=nil, current_agency=nil, initial_date: nil, final_date: nil, agency_ids: nil, expire_key: false)
     counter_key = get_key(current_access, current_user, current_profile, current_agency, initial_date: initial_date, final_date: final_date, agency_ids: agency_ids)
     counter_data = $redis.hget(counter_key, "project_done_counter")
@@ -759,10 +768,12 @@ class Counter < ApplicationRecord
       counter_data = JSON.parse(counter_data,symbolize_names: true)
     else
       project_scope = optional_project_scope(projects, agency_ids)
+      fallback_scope = project_ids_scope(current_access, current_user, current_profile, current_agency, initial_date: initial_date, final_date: final_date, agency_ids: agency_ids)
       if initial_date.present? && final_date.present?
-        counter_data = project_scope ? project_scope.deferred.projects_in_range(initial_date, final_date, 'project_end').ids : Project.where(id: project_ids(current_access, current_user, current_profile, current_agency, initial_date: initial_date, final_date: final_date, agency_ids: agency_ids)).deferred.projects_in_range(initial_date, final_date, 'project_end').ids
+        scoped_projects = project_scope ? project_scope.deferred : fallback_scope.deferred
+        counter_data = scoped_projects.projects_in_range(initial_date, final_date, 'project_end').ids
       else
-        counter_data = project_scope ? project_scope.deferred.ids : Project.where(id: project_ids(current_access, current_user, current_profile, current_agency, initial_date: initial_date, final_date: final_date, agency_ids: agency_ids)).deferred.ids
+        counter_data = (project_scope ? project_scope.deferred : fallback_scope.deferred).ids
       end
       $redis.hset(counter_key, "deferred_projects", counter_data.to_json)
       if expire_key || initial_date.present? && final_date.present?
@@ -797,10 +808,12 @@ class Counter < ApplicationRecord
       counter_data = JSON.parse(counter_data,symbolize_names: true)
     else
       project_scope = optional_project_scope(projects, agency_ids)
+      fallback_scope = project_ids_scope(current_access, current_user, current_profile, current_agency, initial_date: initial_date, final_date: final_date, agency_ids: agency_ids)
       if initial_date.present? && final_date.present?
-        counter_data = project_scope ? project_scope.projects_in_range(initial_date, final_date, 'project_end').on_closed.ids : Project.where(id: project_ids(current_access, current_user, current_profile, current_agency, initial_date: initial_date, final_date: final_date, agency_ids: agency_ids)).projects_in_range(initial_date, final_date, 'project_end').on_closed.ids
+        scoped_projects = project_scope || fallback_scope
+        counter_data = scoped_projects.projects_in_range(initial_date, final_date, 'project_end').on_closed.ids
       else
-        counter_data = project_scope ? project_scope.on_closed.ids : Project.where(id: project_ids(current_access, current_user, current_profile, current_agency, initial_date: initial_date, final_date: final_date, agency_ids: agency_ids)).on_closed.ids
+        counter_data = (project_scope || fallback_scope).on_closed.ids
       end
       $redis.hset(counter_key, "closed_projects", counter_data.to_json)
 
@@ -836,10 +849,12 @@ class Counter < ApplicationRecord
       counter_data = JSON.parse(counter_data,symbolize_names: true)
     else
       project_scope = optional_project_scope(projects, agency_ids)
+      fallback_scope = project_ids_scope(current_access, current_user, current_profile, current_agency, initial_date: initial_date, final_date: final_date, agency_ids: agency_ids)
       if initial_date.present? && final_date.present?
-        counter_data = project_scope ? project_scope.projects_in_range(initial_date, final_date, 'project_end').on_not_deferrer.ids : Project.where(id: project_ids(current_access, current_user, current_profile, current_agency, initial_date: initial_date, final_date: final_date, agency_ids: agency_ids)).projects_in_range(initial_date, final_date, 'project_end').on_not_deferrer.ids
+        scoped_projects = project_scope || fallback_scope
+        counter_data = scoped_projects.projects_in_range(initial_date, final_date, 'project_end').on_not_deferrer.ids
       else
-        counter_data = project_scope ? project_scope.on_not_deferrer.ids : Project.where(id: project_ids(current_access, current_user, current_profile, current_agency, initial_date: initial_date, final_date: final_date, agency_ids: agency_ids)).on_not_deferrer.ids
+        counter_data = (project_scope || fallback_scope).on_not_deferrer.ids
       end
       $redis.hset(counter_key, "rejected_projects", counter_data.to_json)
 
@@ -875,10 +890,15 @@ class Counter < ApplicationRecord
       counter_data = JSON.parse(counter_data,symbolize_names: true)
     else
       project_scope = optional_project_scope(projects, agency_ids)
+      fallback_scope = project_ids_scope(current_access, current_user, current_profile, current_agency, initial_date: initial_date, final_date: final_date, agency_ids: agency_ids).where.not(status_type_id: 1)
       if initial_date.present? && final_date.present?
-        counter_data = project_scope ? project_scope.projects_in_range(initial_date, final_date, 'project_end').completed_and_closed.ids : Project.where(id: project_ids(current_access, current_user, current_profile, current_agency, initial_date: initial_date, final_date: final_date, agency_ids: agency_ids)).where.not(status_type_id:1).from_friday_to_friday(:project_end, initial_date: initial_date).completed_and_closed.ids
+        if project_scope
+          counter_data = project_scope.projects_in_range(initial_date, final_date, 'project_end').completed_and_closed.ids
+        else
+          counter_data = fallback_scope.from_friday_to_friday(:project_end, initial_date: initial_date).completed_and_closed.ids
+        end
       else
-        counter_data = project_scope ? project_scope.completed_and_closed.ids : Project.where(id: project_ids(current_access, current_user, current_profile, current_agency, initial_date: initial_date, final_date: final_date, agency_ids: agency_ids)).where.not(status_type_id:1).from_friday_to_friday(:project_end).completed_and_closed.ids
+        counter_data = project_scope ? project_scope.completed_and_closed.ids : fallback_scope.from_friday_to_friday(:project_end).completed_and_closed.ids
       end
       #counter_data = projects ? projects.completed_and_closed.ids : Project.where(id: projects_from_friday_to_friday(current_access, current_user, current_profile, current_agency)).completed_and_closed.ids
       $redis.hset(counter_key, "project_completed", counter_data.to_json)
