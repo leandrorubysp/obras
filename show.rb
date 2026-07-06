@@ -644,19 +644,16 @@ class Counter < ApplicationRecord
     if counter_data
       counter_data = JSON.parse(counter_data)
     else
-      base_scope =
-        if projects
-          projects
-        else
-          Project.where(
-            id: project_ids(
-              current_access, current_user, current_profile, current_agency,
-              initial_date: initial_date, final_date: final_date, agency_ids: agency_ids
-            )
-          ).where.not(status_type_id: 1)
-        end
-
-      base_scope = filter_projects_by_agency(base_scope, agency_ids)
+      base_scope = if projects
+        filter_projects_by_agency(projects, agency_ids)
+      else
+        Project.where(
+          id: project_ids(
+            current_access, current_user, current_profile, current_agency,
+            initial_date: initial_date, final_date: final_date, agency_ids: agency_ids
+          )
+        ).where.not(status_type_id: 1)
+      end
 
       counter_data = base_scope.from_friday_to_friday(:project_start, initial_date: initial_date).ids
 
@@ -693,8 +690,11 @@ class Counter < ApplicationRecord
     if counter_data
       counter_data = JSON.parse(counter_data,symbolize_names: true)
     else
-      project_scope = filter_projects_by_agency(projects, agency_ids)
-      counter_data = project_scope ? project_scope.ten_most_used_requirement : Project.where(id: projects_from_friday_to_friday(current_access, current_user, current_profile, current_agency, initial_date: initial_date, final_date: final_date, agency_ids: agency_ids)).ten_most_used_requirement
+      counter_data = if projects
+        filter_projects_by_agency(projects, agency_ids).ten_most_used_requirement
+      else
+        Project.where(id: projects_from_friday_to_friday(current_access, current_user, current_profile, current_agency, initial_date: initial_date, final_date: final_date, agency_ids: agency_ids)).ten_most_used_requirement
+      end
       $redis.hset(counter_key, "ten_most_used_requirement", counter_data.to_json)
       if expire_key || initial_date.present? && final_date.present?
         $redis.expire(counter_key, 1.hour)
@@ -709,8 +709,11 @@ class Counter < ApplicationRecord
     if counter_data
       counter_data = JSON.parse(counter_data,symbolize_names: true)
     else
-      project_scope = filter_projects_by_agency(projects, agency_ids)
-      counter_data = project_scope ? project_scope.ten_most_used_monitoring : Project.where(id: projects_from_friday_to_friday(current_access, current_user, current_profile, current_agency, initial_date: initial_date, final_date: final_date, agency_ids: agency_ids)).ten_most_used_monitoring
+      counter_data = if projects
+        filter_projects_by_agency(projects, agency_ids).ten_most_used_monitoring
+      else
+        Project.where(id: projects_from_friday_to_friday(current_access, current_user, current_profile, current_agency, initial_date: initial_date, final_date: final_date, agency_ids: agency_ids)).ten_most_used_monitoring
+      end
       $redis.hset(counter_key, "ten_most_used_monitoring", counter_data.to_json)
       if expire_key || initial_date.present? && final_date.present?
         $redis.expire(counter_key, 1.hour)
@@ -885,10 +888,13 @@ class Counter < ApplicationRecord
   def self.get_histories_project_completed(project_ids = nil, current_agency=nil, initial_date: nil, final_date: nil, agency_ids: nil, expire_key: false)
     counter_key = get_key(nil, nil, nil, nil, initial_date: initial_date, final_date: final_date, agency_ids: agency_ids)
     counter_data = $redis.hget(counter_key, "flow_histories_completed")
+    flow_history_scope = FlowHistory.joins(:project, project: [:service, service: [:flow_status]])
+    flow_history_scope = flow_history_scope.where(projects: { agency_id: agency_ids }) if agency_ids.present?
+
     if counter_data
-      flow_history = FlowHistory.joins(:project, project: [:service, service: [:flow_status]]).where(id: JSON.parse(counter_data,symbolize_names: true))
+      flow_history = flow_history_scope.where(id: JSON.parse(counter_data,symbolize_names: true))
     else
-      flow_history = FlowHistory.joins(:project, project: [:service, service: [:flow_status]]).from_friday_to_friday(:created_at, initial_date: initial_date)
+      flow_history = flow_history_scope.from_friday_to_friday(:created_at, initial_date: initial_date)
         .where.not(project_id: project_ids)
         .where("flow_histories.status_type_id IN (#{Project::COMPLETED.join(',')}) AND projects.status_type_id NOT IN (#{Project::COMPLETED.join(',')}) AND flow_histories.flow_id = flow_statuses.flow_id").distinct
       counter_data =  flow_history.ids
@@ -898,7 +904,6 @@ class Counter < ApplicationRecord
         $redis.expire(counter_key, 1.hour)
       end
     end
-    flow_history = flow_history.where(projects: { agency_id: agency_ids }) if agency_ids.present?
     flow_history.separate_by_agency_and_status_types
   end
 
